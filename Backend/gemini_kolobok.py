@@ -1,3 +1,6 @@
+import mysql.connector
+import os
+from dotenv import load_dotenv
 import google.generativeai as genai
 import os
 from dotenv import load_dotenv
@@ -9,17 +12,37 @@ genai.configure(api_key=API_KEY)
 # Инициализация модели
 model = genai.GenerativeModel('gemini-1.5-flash')
 
-def check_joke_duplicate(new_joke, jokes_file="jokes.txt"):
-    """Проверяет шутку на дубликат, передавая весь файл в один запрос"""
+# Загрузка переменных окружения
+load_dotenv()
+DB_HOST = os.getenv("DB_HOST")
+DB_USER = os.getenv("DB_USER")
+DB_PASS = os.getenv("DB_PASS")
+DB_NAME = os.getenv("DB_NAME")
     
-    # Читаем существующие шутки
-    existing_jokes = []
-    with open(jokes_file, "r", encoding="utf-8") as file:
-        existing_jokes = [line.strip() for line in file.readlines()]
+# Подключение к базе данных
+def get_db():
+    return mysql.connector.connect(
+        host=DB_HOST,
+        user=DB_USER,
+        password=DB_PASS,
+        database=DB_NAME
+    )
+
+def check_joke_duplicate(new_joke):
+    """Проверяет шутку на дубликат, используя базу данных"""
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, text FROM jokes")
+    all_jokes = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    # Преобразуем список шуток из базы данных в список текстов шуток
+    existing_jokes = [joke[1] for joke in all_jokes]
     
     # Формируем запрос со всеми шутками сразу
     jokes_text = "\n".join([f"{i+1}. {joke}" for i, joke in enumerate(existing_jokes)])
-    # надо разобратся с этой строчкой которая выше
     
     prompt = f"""
     Проверь, похожа ли новая шутка на какую-либо из существующих шуток.
