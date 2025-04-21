@@ -11,11 +11,30 @@ class JokeManager:
         # Загрузка переменных окружения
         load_dotenv()
         self.API_KEY = os.getenv("GOOGLE_API_KEY")
-        self.DB_HOST = os.getenv("DB_HOST")
-        self.DB_USER = os.getenv("DB_USER")
-        self.DB_PASS = os.getenv("DB_PASS")  
-        self.DB_NAME = os.getenv("DB_NAME")
-        self.DB_PORT = os.getenv("DB_PORT")
+        
+        # Вывод всех переменных окружения для диагностики
+        print("Environment Variables:")
+        for key, value in os.environ.items():
+            if key.startswith("MYSQL") or key.startswith("DB_"):
+                # Маскируем пароли для безопасности в логах
+                if "PASS" in key or "PASSWORD" in key:
+                    print(f"  {key}: ****")
+                else:
+                    print(f"  {key}: {value}")
+        
+        # Используем переменные Railway в приоритете
+        self.DB_HOST = os.getenv("MYSQLHOST", os.getenv("DB_HOST", "localhost"))
+        self.DB_USER = os.getenv("MYSQLUSER", os.getenv("DB_USER", "root"))
+        self.DB_PASS = os.getenv("MYSQLPASSWORD", os.getenv("DB_PASS", ""))
+        self.DB_NAME = os.getenv("MYSQLDATABASE", os.getenv("DB_NAME", "jokes_db"))
+        self.DB_PORT = os.getenv("MYSQLPORT", os.getenv("DB_PORT", "3306"))
+        
+        # Отладочная информация
+        print(f"Final Database Settings:")
+        print(f"  HOST: {self.DB_HOST}")
+        print(f"  USER: {self.DB_USER}") 
+        print(f"  DATABASE: {self.DB_NAME}")
+        print(f"  PORT: {self.DB_PORT}")
 
 # Настройка API
         genai.configure(api_key=self.API_KEY)
