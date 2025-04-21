@@ -30,36 +30,35 @@ def get_db():
 
 def check_joke_duplicate(new_joke):
     """Checks if the joke is a duplicate using the database"""
-    
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, text FROM jokes")
-    all_jokes = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    
-    # Преобразуем список шуток из базы данных в список текстов шуток
-    existing_jokes = [joke[1] for joke in all_jokes]
-    
-    # Формируем запрос со всеми шутками сразу
-    jokes_text = "\n".join([f"{i+1}. {joke}" for i, joke in enumerate(existing_jokes)])
-    
-    prompt = f"""
-    Check if the new joke is similar to any of the existing jokes.
-    
-    Existing jokes:
-    {jokes_text}
-    
-    New joke: {new_joke}
-    
-    Analyze and respond in this format:
-    1. Similar to joke number X with similarity score Y (0.0-1.0)
-    2. OR respond "No similar jokes found"
-    
-    If similarity score > 0.7, the joke is considered a duplicate.
-    """
-    # Отправляем запрос к модели
     try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, text FROM jokes")
+        all_jokes = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        # Преобразуем список шуток из базы данных в список текстов шуток
+        existing_jokes = [joke[1] for joke in all_jokes]
+        
+        # Формируем запрос со всеми шутками сразу
+        jokes_text = "\n".join([f"{i+1}. {joke}" for i, joke in enumerate(existing_jokes)])
+        
+        prompt = f"""
+        Check if the new joke is similar to any of the existing jokes.
+        
+        Existing jokes:
+        {jokes_text}
+        
+        New joke: {new_joke}
+        
+        Analyze and respond in this format:
+        1. Similar to joke number X with similarity score Y (0.0-1.0)
+        2. OR respond "No similar jokes found"
+        
+        If similarity score > 0.7, the joke is considered a duplicate.
+        """
+        # Отправляем запрос к модели
         response = model.generate_content(prompt)
         result = response.text.strip().lower()
         
@@ -77,6 +76,10 @@ def check_joke_duplicate(new_joke):
                 return True, similar_joke, similarity_score
         
         # Если не нашли совпадений или низкая оценка
+        return False, None, 0.0
+    except mysql.connector.errors.DatabaseError as e:
+        print(f"Database connection error: {e}")
+        # Пропускаем проверку на дубликаты при ошибке подключения
         return False, None, 0.0
     except Exception as e:
         print(f"Error in check_joke_duplicate: {e}")
