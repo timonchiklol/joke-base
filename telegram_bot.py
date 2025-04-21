@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 import os
 from gemini_kolobok import check_joke_duplicate
 from main import JokeManager
+import signal
+import sys
 
 # Загрузка переменных окружения
 load_dotenv()
@@ -156,25 +158,35 @@ async def add_joke_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     
     # Проверяем на дубликаты с помощью Gemini
-    is_duplicate, similar_joke, similarity_score = check_joke_duplicate(joke_text)
+    try:
+        is_duplicate, similar_joke, similarity_score = check_joke_duplicate(joke_text)
+        
+        # Если Gemini определил, что это дубликат
+        if is_duplicate:
+            await update.message.reply_text(
+                f"Similar joke already exists (similarity: {similarity_score:.2f}).\n"
+                f"Similar joke: {similar_joke}\n\n"
+                f"Please add a more original joke."
+            )
+            return ConversationHandler.END
+    except Exception as e:
+        # Логируем ошибку, но продолжаем работу
+        logger.error(f"Error checking duplicate: {e}")
+        # Можно отправить сообщение пользователю
+        # await update.message.reply_text("Duplicate check service is currently unavailable. Continuing...")
     
-    # Если Gemini определил, что это дубликат
-    if is_duplicate:
-        await update.message.reply_text(
-            f"Similar joke already exists (similarity: {similarity_score:.2f}).\n"
-            f"Similar joke: {similar_joke}\n\n"
-            f"Please add a more original joke."
+    # Если не дубликат или проверка не удалась, отправляем на модерацию
+    try:
+        await send_for_moderation(
+            context=context,
+            user_id=user_id,
+            command_type="add",
+            payload={'category': category, 'joke_text': joke_text},
+            message=update.message
         )
-        return ConversationHandler.END
-    
-    # Если не дубликат, отправляем на модерацию
-    await send_for_moderation(
-        context=context,
-        user_id=user_id,
-        command_type="add",
-        payload={'category': category, 'joke_text': joke_text},
-        message=update.message
-    )
+    except Exception as e:
+        logger.error(f"Error sending for moderation: {e}")
+        await update.message.reply_text("Sorry, there was an error processing your request. Please try again later.")
     
     return ConversationHandler.END
 
@@ -390,8 +402,18 @@ async def change_new_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Главная функция
 def main():
-    # Создание приложения БЕЗ прокси
+    # Создание приложения с корректной обработкой сигналов завершения
     application = ApplicationBuilder().token(TG_TOKEN).build()
+    
+    # Добавить обработчик сигналов для корректного завершения
+    def signal_handler(sig, frame):
+        print("Shutting down bot gracefully...")
+        application.stop()
+        print("Bot stopped.")
+        sys.exit(0)
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     
     # Установка меню команд - используем post_init вместо create_task
     application.post_init = setup_commands
@@ -443,7 +465,7 @@ def main():
     application.add_handler(change_conv_handler)
     
     # Запуск бота
-    application.run_polling()
+    application.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
 
 if __name__ == "__main__":
     main() 
