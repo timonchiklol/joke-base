@@ -81,7 +81,7 @@ async def add_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("Select a category for new joke:", reply_markup=reply_markup)
-    return JOKE_TEXT
+    return CATEGORY
 
 # Обработчик выбора категории для добавления
 async def add_category_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -413,7 +413,6 @@ def main():
         fallbacks=[],
     )
     application.add_handler(add_conv_handler)
-    application.add_handler(CallbackQueryHandler(add_category_callback, pattern="^add_"))
     
     # Обработчик разговора для удаления шутки
     delete_conv_handler = ConversationHandler(

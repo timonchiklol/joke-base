@@ -22,7 +22,7 @@ DB_NAME = os.getenv("DB_NAME")
 # Подключение к базе данных
 def get_db():
     return mysql.connector.connect(
-        host=DB_HOST,
+        host="localhost",
         user=DB_USER,
         password=DB_PASS,
         database=DB_NAME
