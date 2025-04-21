@@ -3,8 +3,8 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler, MessageHandler, filters, ConversationHandler
 from dotenv import load_dotenv
 import os
-from gemini_kolobok import check_joke_duplicate
-from main import JokeManager
+from Backend.gemini_kolobok import check_joke_duplicate
+from Backend.main import JokeManager
 
 # Загрузка переменных окружения
 load_dotenv()
