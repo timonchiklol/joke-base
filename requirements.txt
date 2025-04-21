@@ -1,4 +1,4 @@
-   mysql-connector-python==8.0.31
-   python-telegram-bot==13.15
-   python-dotenv==1.0.0
-   google-generativeai==0.0.9
+   mysql-connector-python
+   python-telegram-bot
+   python-dotenv
+   google-generativeai
