@@ -15,6 +15,7 @@ class JokeManager:
         self.DB_USER = os.getenv("DB_USER")
         self.DB_PASS = os.getenv("DB_PASS")  
         self.DB_NAME = os.getenv("DB_NAME")
+        self.DB_PORT = os.getenv("DB_PORT")
 
 # Настройка API
         genai.configure(api_key=self.API_KEY)
@@ -38,17 +39,77 @@ class JokeManager:
 
 # Подключение к базе данных
     def get_db(self):
-        return mysql.connector.connect(
-            host=self.DB_HOST,
-            user=self.DB_USER,
-            password=self.DB_PASS,
-            database=self.DB_NAME
-        )
+        try:
+            print(f"Connecting to DB: Host={self.DB_HOST}, User={self.DB_USER}, DB={self.DB_NAME}, Port={self.DB_PORT or '3306'}")
+            connection = mysql.connector.connect(
+                host=self.DB_HOST,
+                user=self.DB_USER,
+                password=self.DB_PASS,
+                database=self.DB_NAME,
+                port=int(self.DB_PORT) if self.DB_PORT else 3306
+            )
+            print("Database connection successful")
+            return connection
+        except mysql.connector.Error as err:
+            print(f"Database connection error: {err}")
+            raise
+
+    def initialize_db(self):
+        """Создаёт необходимые таблицы, если они не существуют"""
+        try:
+            print(f"Attempting to initialize database: {self.DB_HOST} (USER: {self.DB_USER}, DB: {self.DB_NAME})")
+            conn = mysql.connector.connect(
+                host=self.DB_HOST,
+                user=self.DB_USER,
+                password=self.DB_PASS,
+                database=self.DB_NAME,
+                port=int(self.DB_PORT) if self.DB_PORT else 3306
+            )
+            print("Connected to database, creating tables...")
+            cursor = conn.cursor()
+            
+            # Создаём таблицу категорий
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS categories (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(50) NOT NULL UNIQUE
+            )
+            """)
+            
+            # Создаём таблицу шуток
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS jokes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                text TEXT NOT NULL,
+                category_id INT,
+                FOREIGN KEY (category_id) REFERENCES categories(id)
+            )
+            """)
+            
+            # Добавляем стандартные категории
+            for category in self.categories:
+                try:
+                    cursor.execute("""
+                    INSERT IGNORE INTO categories (name) VALUES (%s)
+                    """, (category,))
+                except Exception as e:
+                    print(f"Error inserting category {category}: {e}")
+            
+            conn.commit()
+            print("Database initialized successfully")
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print(f"Database initialization failed: {e}")
 
 # Основной цикл программы
 class Main:
     def __init__(self):
         self.joke_manager = JokeManager()
+        try:
+            self.joke_manager.initialize_db()
+        except Exception as e:
+            print(f"Failed to initialize database: {e}")
 
     def run(self):
         # Проверяем, работаем ли мы в деплое или локально
