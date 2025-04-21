@@ -111,45 +111,72 @@ async def setup_commands(application):
     logger.info("Bot commands have been set")
 
 # Общая функция для отправки запроса на модерацию
-async def send_for_moderation(context, user_id, command_type, payload, message=None):
-    # Сохраняем данные в контексте
-    context.bot_data['pending_action'] = {
-        'command': command_type,
-        'payload': payload,
-        'user_id': user_id
-    }
+async def send_for_moderation(context, user_id, command_type, payload, message):
+    admin_id = int(ADMIN_ID) if ADMIN_ID else None
     
-    # Создаем клавиатуру с кнопками
-    keyboard = [
-        [
-            InlineKeyboardButton("Approve", callback_data=f"approve_{user_id}"),
-            InlineKeyboardButton("Decline", callback_data=f"decline_{user_id}")
+    if admin_id:
+        # ДОБАВИТЬ ЭТУ ПРОВЕРКУ перед отправкой на модерацию
+        if command_type == "add" and "joke_text" in payload:
+            joke_text = payload['joke_text']
+            print(f"Проверка шутки: {joke_text}")  # Для отладки
+            
+            # Вызываем проверку дубликатов явно
+            try:
+                is_duplicate, similar_joke, similarity_score = check_joke_duplicate(joke_text)
+                print(f"Результат проверки: {is_duplicate}, score: {similarity_score}")  # Для отладки
+                
+                if is_duplicate:
+                    # Если дубликат, отклоняем без модерации
+                    if hasattr(message, 'reply_text'):
+                        await message.reply_text(
+                            f"Similar joke already exists (similarity: {similarity_score:.2f}).\n"
+                            f"Similar joke: {similar_joke}\n\n"
+                            f"Your joke was not submitted for moderation."
+                        )
+                    return False  # Прерываем выполнение, не отправляем на модерацию
+            except Exception as e:
+                print(f"Ошибка проверки: {e}")
+                # Продолжаем при ошибке
+        
+        # Остальной код отправки на модерацию
+        # Сохраняем данные в контексте
+        context.bot_data['pending_action'] = {
+            'command': command_type,
+            'payload': payload,
+            'user_id': user_id
+        }
+        
+        # Создаем клавиатуру с кнопками
+        keyboard = [
+            [
+                InlineKeyboardButton("Approve", callback_data=f"approve_{user_id}"),
+                InlineKeyboardButton("Decline", callback_data=f"decline_{user_id}")
+            ]
         ]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-            # Формируем текст для модерации
-    mod_text = f"Action request:\nCommand: {command_type}\n"
-    if command_type == "add":
-        mod_text += f"Category: {payload['category']}\nJoke: {payload['joke_text']}"
-    elif command_type == "delete":
-        mod_text += f"Joke ID: {payload['joke_id']}\nCategory: {payload['category']}"
-    elif command_type == "change":
-        mod_text += f"Joke ID: {payload['joke_id']}\nNew text: {payload['new_text']}"
-    elif command_type == "clear":
-        mod_text += "Request to clear the entire database!"
-    
-    mod_text += f"\nFrom user: {user_id}"
-    
-    # Отправляем администратору на проверку
-    await context.bot.send_message(
-        chat_id=ADMIN_ID,
-        text=mod_text,
-        reply_markup=reply_markup
-    )
-    
-    # Сообщаем пользователю
-    if message:
-        await message.reply_text("Your request has been sent for moderation.")
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        # Формируем текст для модерации
+        mod_text = f"Action request:\nCommand: {command_type}\n"
+        if command_type == "add":
+            mod_text += f"Category: {payload['category']}\nJoke: {payload['joke_text']}"
+        elif command_type == "delete":
+            mod_text += f"Joke ID: {payload['joke_id']}\nCategory: {payload['category']}"
+        elif command_type == "change":
+            mod_text += f"Joke ID: {payload['joke_id']}\nNew text: {payload['new_text']}"
+        elif command_type == "clear":
+            mod_text += "Request to clear the entire database!"
+        
+        mod_text += f"\nFrom user: {user_id}"
+        
+        # Отправляем администратору на проверку
+        await context.bot.send_message(
+            chat_id=admin_id,
+            text=mod_text,
+            reply_markup=reply_markup
+        )
+        
+        # Сообщаем пользователю
+        if message:
+            await message.reply_text("Your request has been sent for moderation.")
 
 # Обработчик ввода текста шутки
 async def add_joke_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
