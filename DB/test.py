@@ -6,7 +6,7 @@ try:
         user="root",
         password="DB_PASS"
     )
-    print("Подключение успешно!")
+    print("CONNECTION SUCCESS!")
     conn.close()
 except Exception as e:
-    print(f"Ошибка: {e}")
+    print(f"ERROR: {e}")

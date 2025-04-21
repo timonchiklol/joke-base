@@ -15,8 +15,8 @@ try:
     # Создание базы данных
     cursor.execute("CREATE DATABASE IF NOT EXISTS jokes_db")
     
-    print("✅ База данных jokes_db успешно создана!")
+    print("✅ DATA BASE jokes_db successfully created!")
     conn.close()
     
 except Exception as e:
-    print(f"❌ Ошибка: {e}") 
+    print(f"❌ ERROR: {e}") 

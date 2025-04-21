@@ -29,7 +29,7 @@ def get_db():
     )
 
 def check_joke_duplicate(new_joke):
-    """Проверяет шутку на дубликат, используя базу данных"""
+    """Checks if the joke is a duplicate using the database"""
     
     conn = get_db()
     cursor = conn.cursor()
@@ -45,17 +45,16 @@ def check_joke_duplicate(new_joke):
     jokes_text = "\n".join([f"{i+1}. {joke}" for i, joke in enumerate(existing_jokes)])
     
     prompt = f"""
-    Проверь, похожа ли новая шутка на какую-либо из существующих шуток.
+    Check if the new joke is similar to any of the existing jokes.
     
-    Существующие шутки:
+    Existing jokes:
     {jokes_text}
     
-    Новая шутка: {new_joke}
+    New joke: {new_joke}
     
-    Если новая шутка похожа на какую-то из существующих (смысл тот же), 
-    ответь:"false" и в ином случае ответь:"true"
+    If the new joke is similar to any of the existing ones (the meaning is the same),
+    answer: "false" and otherwise answer: "true"
     """
-    
     # Отправляем запрос к модели
     response = model.generate_content(prompt)
     result = response.text.strip()

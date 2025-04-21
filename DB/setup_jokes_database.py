@@ -66,7 +66,7 @@ try:
     cursor.execute("DELETE FROM categories WHERE name IN ('pol', 'politics')")
     conn.commit()
     
-    print("✅ База данных настроена с предопределенными категориями:")
+    print("✅ DATA BASE SETUP with predefined categories:")
     
     # Выводим список категорий
     cursor.execute("SELECT id, name FROM categories")
@@ -76,4 +76,4 @@ try:
     conn.close()
     
 except Exception as e:
-    print(f"❌ Ошибка: {e}") 
+    print(f"❌ ERROR: {e}") 

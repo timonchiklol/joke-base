@@ -18,17 +18,17 @@ def view_database():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    print("\n=== КАТЕГОРИИ ===")
+    print("\n=== CATEGORIES ===")
     cursor.execute("SELECT id, name FROM categories")
     categories = cursor.fetchall()
     
     if not categories:
-        print("Нет категорий в базе данных.")
+        print("No categories in database.")
     else:
         for cat_id, cat_name in categories:
             print(f"{cat_id}: {cat_name}")
     
-    print("\n=== ШУТКИ ===")
+    print("\n=== JOKES ===")
     cursor.execute("""
     SELECT j.id, j.text, c.name 
     FROM jokes j 
@@ -38,7 +38,7 @@ def view_database():
     jokes = cursor.fetchall()
     
     if not jokes:
-        print("Нет шуток в базе данных.")
+        print("No jokes in database.")
     else:
         for joke_id, joke_text, category in jokes:
             print(f"{joke_id}. [{category}] {joke_text}")
