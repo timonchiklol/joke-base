@@ -52,17 +52,32 @@ def check_joke_duplicate(new_joke):
     
     New joke: {new_joke}
     
-    If the new joke is similar to any of the existing ones (the meaning is the same),
-    answer: "false" and otherwise answer: "true"
+    Analyze and respond in this format:
+    1. Similar to joke number X with similarity score Y (0.0-1.0)
+    2. OR respond "No similar jokes found"
+    
+    If similarity score > 0.7, the joke is considered a duplicate.
     """
     # Отправляем запрос к модели
-    response = model.generate_content(prompt)
-    result = response.text.strip()
-    
-    # Проверяем результат
-    if "false" in result:
-        return False
-    elif "true" in result:
-        return True
-    else:
-        return "нихера не работает"
+    try:
+        response = model.generate_content(prompt)
+        result = response.text.strip().lower()
+        
+        # Ищем фразы о схожести
+        import re
+        similarity_match = re.search(r'similar to joke number (\d+) with similarity score (0\.\d+|1\.0)', result)
+        
+        if similarity_match:
+            joke_number = int(similarity_match.group(1))
+            similarity_score = float(similarity_match.group(2))
+            
+            # Если оценка сходства выше порога
+            if similarity_score > 0.7 and 0 < joke_number <= len(existing_jokes):
+                similar_joke = existing_jokes[joke_number-1]
+                return True, similar_joke, similarity_score
+        
+        # Если не нашли совпадений или низкая оценка
+        return False, None, 0.0
+    except Exception as e:
+        print(f"Error in check_joke_duplicate: {e}")
+        return False, None, 0.0

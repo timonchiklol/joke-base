@@ -149,13 +149,25 @@ async def send_for_moderation(context, user_id, command_type, payload, message=N
     if message:
         await message.reply_text("Your request has been sent for moderation.")
 
-# Обработчик ввода текста шутки - обновленный с использованием общей функции модерации
+# Обработчик ввода текста шутки
 async def add_joke_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     joke_text = update.message.text
     category = context.user_data.get('category')
     user_id = update.effective_user.id
     
-    # Всегда отправляем на модерацию, без проверки на дубликаты
+    # Проверяем на дубликаты с помощью Gemini
+    is_duplicate, similar_joke, similarity_score = check_joke_duplicate(joke_text)
+    
+    # Если Gemini определил, что это дубликат
+    if is_duplicate:
+        await update.message.reply_text(
+            f"Similar joke already exists (similarity: {similarity_score:.2f}).\n"
+            f"Similar joke: {similar_joke}\n\n"
+            f"Please add a more original joke."
+        )
+        return ConversationHandler.END
+    
+    # Если не дубликат, отправляем на модерацию
     await send_for_moderation(
         context=context,
         user_id=user_id,
