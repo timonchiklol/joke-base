@@ -4,6 +4,7 @@ import google.generativeai as genai
 import os
 from dotenv import load_dotenv
 from gemini_kolobok import check_joke_duplicate
+import sys
 
 class JokeManager:
     def __init__(self):
@@ -50,6 +51,15 @@ class Main:
         self.joke_manager = JokeManager()
 
     def run(self):
+        # Проверяем, работаем ли мы в деплое или локально
+        if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("DEPLOYMENT_ENV") == "production":
+            # В Railway запускаем телеграм-бота
+            print("Starting Telegram bot...")
+            from telegram_bot import main as run_telegram_bot
+            run_telegram_bot()
+            return
+            
+        # Остальной код с input() выполняется только при локальном запуске
         while True:
             joke_input = input("Enter a command: ")
             if joke_input == "show":
